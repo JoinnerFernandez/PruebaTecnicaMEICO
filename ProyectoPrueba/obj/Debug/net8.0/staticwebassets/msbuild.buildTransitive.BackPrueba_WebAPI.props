@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\buildMultiTargeting\BackPrueba_WebAPI.props" />
+</Project>
