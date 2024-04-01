@@ -1,0 +1,163 @@
+﻿@page "/"
+@using Blazored.Toast.Services
+@using FrontEndPrueba.Models
+@inject DialogService DialogService
+@inject IToastService notificacion
+<PageTitle>Contactos</PageTitle>
+
+        <div class="card shadow-sm mb-2 bg-white">
+            <div class="card-body">
+                <div class="row gy-2 p-1 align-items-end">
+                    <div class="col-md-2">
+                        <label>Usuario</label>
+                        <input type="text" class="form-control" @bind="usuario" required
+                                                    @onkeyup="@(async e => { if (e.Key == "Enter") await Buscar(usuario);})">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" @bind="nombre" disabled required>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary" @onclick="() => abrirModal(usuario, null)">Agregar Contacto</button>
+
+                    </div>
+
+                    <div class="row gy-2 align-items-end">
+                <br />
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>CONTACTO</th>
+                            <th>DIRECCION</th>
+                            <th>TELEFONO</th>
+                            <th>CORREO</th>
+                            <th>EMPRESA</th>
+                            <th>NOTA</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (lstContactos.Count > 0)
+                        {
+                            @foreach (var item in lstContactos)
+                            {
+                                <tr>
+                                    <td class="col-2"><label>@item.Nombre</label></td>
+                                    <td class="col-2"><label>@item.Direccion</label></td>
+                                    <td class="col-1">
+                                        <table class="table">
+                                            <tbody>
+                                                @foreach (var tel in item.lstTelefonos)
+                                                {
+                                                    <tr>
+                                                        <td class="col-2"><label>@tel.NumTelefono</label></td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                    <td class="col-2">
+                                        <table class="table">
+                                            <tbody>
+                                                @foreach (var mail in item.lstCorreos)
+                                                {
+                                                    <tr>
+                                                        <td class="col-2"><label>@mail.Mail</label></td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                    <td class="col-2"><label>@item.Empresa</label></td>
+                                    <td class="col-2"><label>@item.Nota</label></td>
+                                    <td class="col-1"> <RadzenButton ButtonStyle="ButtonStyle.Secondary" Icon="edit" class="m-1" Click=@( () => abrirModal(usuario, item)) /></td>
+                                    <td class="col-1"> <RadzenButton ButtonStyle="ButtonStyle.Secondary" Icon="delete" class="m-1" Click=@( () => delete(item.IdContacto)) /></td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+                    </div>
+                   
+                </div>
+            </div>
+        </div>
+
+
+@code{
+
+    private Facade.Facade _facade = new Facade.Facade();
+    private string usuario;
+    private string nombre;
+    private List<Contacto> lstContactos = new List<Contacto>();
+
+    private async Task Buscar(string id)
+    {
+        var result = await _facade.getContactos(id);
+        if(result != null)
+        {
+            nombre = result.Nombre;
+            if (result.lstContactos.Count > 0)
+            {
+                lstContactos = result.lstContactos.ToList();
+            }
+            else
+            {
+                lstContactos.Clear();
+            }        
+        }
+        else
+        {
+            Limpiar();
+            await abrirModalUsuario(id);
+        }
+        StateHasChanged();
+    }
+
+    private void Limpiar()
+    {
+        lstContactos.Clear();
+        nombre = string.Empty;
+    }
+
+    private async Task abrirModal(string usuario, Contacto item)
+    {
+        Contacto result = await DialogService.OpenAsync<CrearContacto>(item == null ?  "Crear Contacto" : "Editar Contacto",
+               new Dictionary<string, object>() { { "IdUsuario", usuario }, { "contacto", item } },
+               new DialogOptions() { Width = "900px", Height = "450px" });
+
+        if (result != null)
+        {
+            await Buscar(result.IdUsuario);
+        }
+
+    }
+
+    private async Task abrirModalUsuario(string cd_CLT_CODI)
+    {
+        Usuario result = await DialogService.OpenAsync<CrearUsuario>("New Contacto",
+               new Dictionary<string, object>() { { "IdUsuario", usuario } },
+               new DialogOptions() { Width = "500", Height = "300px" });
+
+        if (result != null)
+        {
+            usuario = result.IdUsuario;
+            nombre = result.Nombre;
+        }
+        else
+        {
+            notificacion.ShowWarning($"El Cliente con identificacion {cd_CLT_CODI} no existe");
+            nombre = string.Empty;
+            usuario = string.Empty;
+        }
+    }
+
+    private async Task delete(int idContacto)
+    {
+        var result = await _facade.deleteContacto(idContacto);
+        if (result)
+        {
+            await Buscar(usuario);
+        }
+    }
+
+}

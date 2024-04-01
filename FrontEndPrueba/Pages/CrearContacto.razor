@@ -1,0 +1,222 @@
+﻿@inject DialogService DialogService
+@inject IToastService notificacion
+@inject NotificationService NotificationService
+@using Blazored.Toast.Services
+@using FrontEndPrueba.Models
+
+<style>
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+</style>
+
+<EditForm Model="@objContacto" OnValidSubmit="guardar">
+    <RadzenStack Gap="1rem" Orientation="Orientation.Vertical" JustifyContent="JustifyContent.SpaceBetween" Style="height: 100%;">
+        <RadzenStack>
+            <RadzenRow>
+                <div class="card-body">
+                    <div class="row gy-3">
+                        <div class="col-md-3">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-mt-2 rz-my-0" Style="color: black;">Nombre</RadzenText>
+                            <input type="text" class="form-control" oninput="this.value = this.value.toUpperCase()" @bind="objContacto.Nombre">
+
+                        </div>
+
+                        <div class="col-md-3">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-mt-2 rz-my-0" Style="color: black;">Direccion</RadzenText>
+                            <input type="text" class="form-control" oninput="this.value = this.value.toUpperCase()" @bind="objContacto.Direccion">
+
+                        </div>
+
+                        <div class="col-md-3">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-mt-2 rz-my-0" Style="color: black;">Empresa</RadzenText>
+                            <input type="text" class="form-control" oninput="this.value = this.value.toUpperCase()" @bind="objContacto.Empresa">
+
+                        </div>
+                        <div class="col-md-3">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-mt-2 rz-my-0" Style="color: black;">Nota</RadzenText>
+                            <input type="text" class="form-control" oninput="this.value = this.value.toUpperCase()" @bind="objContacto.Nota">
+
+                        </div>
+                        <div class="col-md-1">
+                            <RadzenButton ButtonStyle="ButtonStyle.Primary" Icon="add" class="m-1" Click=@( () => AgregarTel()) />
+                        </div>
+                        <div class="col-md-5">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-mt-2 rz-my-0" Style="color: black;">Telefono</RadzenText>
+                            <table class="table">
+                                <tbody>
+                                @if (objContacto.lstTelefonos.Count > 0)
+                                    {
+                                    @foreach (var tel in objContacto.lstTelefonos)
+                                        {
+                                            <tr>
+                                                <td class="col-2"><input type="number" class="form-control" @bind="tel.NumTelefono" style="width: 180px" /></td>
+                                                <td class="col">
+                                                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" class="m-1" Click=@( () => EliminarTel(tel)) />
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-1">
+                            <RadzenButton ButtonStyle="ButtonStyle.Primary" Icon="add" class="m-1" Click=@( () => AgregarMail()) />
+                        </div>
+                        <div class="col-md-5">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-mt-2 rz-my-0" Style="color: black;">Correo</RadzenText>
+                            <table class="table">
+                                <tbody>
+                                @if (objContacto.lstCorreos.Count > 0)
+                                    {
+                                    @foreach (var mail in objContacto.lstCorreos)
+                                        {
+                                            <tr>
+                                                <td class="col-11"><input type="email" class="form-control" @bind="mail.Mail" /></td>
+                                                <td class="col-1">
+                                                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" class="m-1" Click=@( () => EliminarMail(mail)) />
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                       
+                    </div>
+                    <br />
+                </div>
+            </RadzenRow>
+            <button type="submit"  class="btn btn-primary">Guardar Contacto</button>
+        </RadzenStack>
+    </RadzenStack>
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+</EditForm>
+
+@code {
+
+    [Parameter] public string IdUsuario { get; set; } = "";
+    [Parameter] public Contacto contacto { get; set; } = null;
+
+    private Facade.Facade _facade = new Facade.Facade();
+
+    public Contacto objContacto = new Contacto();
+
+    #region Metodo Inicializador
+    protected override async Task OnInitializedAsync()
+    {
+        if(contacto != null)
+        {
+            objContacto = contacto;
+        }
+        await base.OnInitializedAsync();
+    }
+    #endregion
+
+    private async Task guardar()
+    {
+        try
+        {
+            if (validarFormulario())
+            {
+                var obj = new Contacto()
+                    {
+                        IdContacto = objContacto.IdContacto,
+                        IdUsuario = IdUsuario,
+                        Nombre = objContacto.Nombre,
+                        Direccion = objContacto.Direccion,
+                        Empresa = objContacto.Empresa,
+                        Nota = objContacto.Nota,
+                        lstCorreos = objContacto.lstCorreos,
+                        lstTelefonos = objContacto.lstTelefonos
+                    };
+
+                var response = await _facade.postContacto(obj);
+                if (response)
+                {
+                    notificacion.ShowInfo("Cliente guardado correctamente!");
+                    DialogService.Close(obj);
+                }
+                else
+                {
+                    DialogService.Close(null);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+
+            throw;
+        }             
+    }
+
+    #region Validaciones
+
+    private bool validarFormulario()
+    {
+        if (objContacto.lstTelefonos.Count > 0 && objContacto.lstCorreos.Count > 0)
+        {
+            foreach (var item in objContacto.lstTelefonos)
+            {
+                if(item.NumTelefono == "")
+                {
+                    Notificacion("Los telefonos no pueden ir vacios");
+                    return false;
+                }
+            }
+            foreach (var item in objContacto.lstCorreos)
+            {
+                if (item.Mail == "")
+                {
+                    Notificacion("Los Correos o pueden ir vacios");
+                    return false;
+                }
+            }
+            return true;
+        }
+        Notificacion("Debe agregar minimo un Telefono y un Correo para continuar");
+        return false;
+    }
+
+    #endregion
+
+    #region Agregar Telefonos y Correos
+
+    private void AgregarTel()
+    {
+        objContacto.lstTelefonos.Add(new Telefono { IdContacto = objContacto.IdContacto, NumTelefono = "" });
+    }
+
+    private void EliminarTel(Telefono tel)
+    {
+        objContacto.lstTelefonos.Remove(tel);
+    }
+
+    private void AgregarMail()
+    {
+        objContacto.lstCorreos.Add(new Correo { IdContacto = objContacto.IdContacto, Mail = "" });
+    }
+
+    private void EliminarMail(Correo mail)
+    {
+        objContacto.lstCorreos.Remove(mail);
+    }
+
+    #endregion
+
+    void Notificacion(string mensaje)
+    {
+        NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = mensaje,
+                Duration = 1800,
+                Style = " position: fixed; top: 50%;left: 50%;transform: translate(-50%, -50%);"
+
+            });
+    }
+}

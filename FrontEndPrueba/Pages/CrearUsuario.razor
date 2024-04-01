@@ -1,0 +1,56 @@
+﻿@inject DialogService DialogService
+@inject IToastService notificacion
+@using Blazored.Toast.Services
+@using FrontEndPrueba.Models
+
+<EditForm Model="@objUsuario" OnValidSubmit="guardar">
+    <RadzenStack Gap="1rem" Orientation="Orientation.Vertical" JustifyContent="JustifyContent.SpaceBetween" Style="height: 100%;">
+        <RadzenStack>
+            <RadzenRow>
+                <div class="card-body">
+                    <div class="row gy-3">
+                        <div class="col-md-3">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-mt-2 rz-my-0" Style="color: black;">Nombre</RadzenText>
+                            <input type="text" class="form-control" oninput="this.value = this.value.toUpperCase()" @bind="objUsuario.Nombre" style="width:200px">
+                        </div>                     
+                    </div>
+                </div>
+                    <br />
+            </RadzenRow>
+            <button type="submit" class="btn btn-primary">Crear Usuario</button>
+        </RadzenStack>
+    </RadzenStack>
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+</EditForm>
+
+@code {
+    [Parameter] public string IdUsuario { get; set; } = "";
+
+    private Facade.Facade _facade = new Facade.Facade();
+
+    private Usuario objUsuario = new Usuario();
+
+
+    private async Task guardar()
+    {
+        var obj = new Usuario()
+            {
+                IdUsuario = IdUsuario,
+                Nombre = objUsuario.Nombre,
+                lstContactos = null             
+            };
+
+        var result = await _facade.postUsuario(obj);
+        if(result)
+        {
+            notificacion.ShowInfo("Cliente guardado correctamente!");
+            DialogService.Close(obj);
+        }
+        else
+        {
+            DialogService.Close(obj);
+        }
+
+    }
+}
